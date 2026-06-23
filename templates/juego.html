@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#020a16">
+    <title>Defensa del Jardín Inteligente</title>
+    <link rel="stylesheet" href="/static/css/juego.css">
+</head>
+<body>
+    <main class="game-screen" id="gameScreen">
+        <img
+            class="board-background"
+            src="/static/img/tablero_inicio.png"
+            alt="Tablero nocturno del jardín"
+        >
+
+        <header class="game-header">
+            <a class="back-button" href="/" aria-label="Volver">
+                <span><img src="/static/img/flecha.png" class="flecha" alt=""></span>
+            </a>
+
+            <section class="header-title">
+                <span class="header-kicker">DEFENSA DEL JARDÍN INTELIGENTE</span>
+                <h1>ZONA DE DEFENSA</h1>
+            </section>
+
+            <div class="mode-badge" id="modeBadge">
+                <img src="/static/img/cerebro.png" alt="">
+                <span>MODO ADAPTATIVO</span>
+            </div>
+        </header>
+
+        <aside class="plant-menu">
+            <div class="plant-menu-header">
+                <div>
+                    <span class="section-label">ARSENAL</span>
+                    <h2>ELIGE UNA PLANTA</h2>
+                </div>
+
+                <button class="remove-tool" id="removeTool" type="button">
+                    <span class="remove-icon">↻</span>
+                    <small>RETIRAR</small>
+                </button>
+            </div>
+
+            <div class="plant-list">
+                <button
+                    class="plant-card selected"
+                    data-plant="tiradora"
+                    data-cost="100"
+                    type="button"
+                >
+                    <span class="plant-image-wrap">
+                        <img src="/static/img/tiradora.png" alt="Tiradora">
+                    </span>
+                    <span class="plant-data">
+                        <strong>TIRADORA</strong>
+                        <small>Dispara a distancia</small>
+                        <b>
+                            <img src="/static/img/sol.png" alt="">
+                            100
+                        </b>
+                    </span>
+                </button>
+
+                <button
+                    class="plant-card solar-card"
+                    data-plant="girasol"
+                    data-cost="50"
+                    type="button"
+                >
+                    <span class="plant-image-wrap">
+                        <img src="/static/img/girasol.png" alt="Girasol">
+                    </span>
+                    <span class="plant-data">
+                        <strong>GIRASOL</strong>
+                        <small>Genera energía</small>
+                        <b>
+                            <img src="/static/img/sol.png" alt="">
+                            50
+                        </b>
+                    </span>
+                </button>
+
+                <button
+                    class="plant-card wall-card"
+                    data-plant="nuez"
+                    data-cost="75"
+                    type="button"
+                >
+                    <span class="plant-image-wrap">
+                        <img src="/static/img/nuez.png" alt="Nuez muro">
+                    </span>
+                    <span class="plant-data">
+                        <strong>NUEZ MURO</strong>
+                        <small>Resiste ataques</small>
+                        <b>
+                            <img src="/static/img/sol.png" alt="">
+                            75
+                        </b>
+                    </span>
+                </button>
+
+                <button
+                    class="plant-card ice-card"
+                    data-plant="hielo"
+                    data-cost="125"
+                    type="button"
+                >
+                    <span class="plant-image-wrap">
+                        <img src="/static/img/planta_hielo.png" alt="Planta hielo">
+                    </span>
+                    <span class="plant-data">
+                        <strong>PLANTA HIELO</strong>
+                        <small>Ralentiza enemigos</small>
+                        <b>
+                            <img src="/static/img/sol.png" alt="">
+                            125
+                        </b>
+                    </span>
+                </button>
+
+                <button
+                    class="plant-card bomb-card"
+                    data-plant="explosiva"
+                    data-cost="150"
+                    type="button"
+                >
+                    <span class="plant-image-wrap">
+                        <img src="/static/img/explosiva.png" alt="Explosiva">
+                    </span>
+                    <span class="plant-data">
+                        <strong>EXPLOSIVA</strong>
+                        <small>Daño en área</small>
+                        <b>
+                            <img src="/static/img/sol.png" alt="">
+                            150
+                        </b>
+                    </span>
+                </button>
+            </div>
+
+            <div class="tip-box">
+                <span class="tip-icon">
+                    <img src="/static/img/foco.png" alt="Consejo">
+                </span>
+
+                <p>
+                    Consejo: selecciona una planta y luego haz clic en una casilla
+                    del césped.
+                </p>
+            </div>
+        </aside>
+
+        <section class="board-interaction" id="boardInteraction">
+            <div class="grid-layer" id="gridLayer"></div>
+        </section>
+
+        <div class="energy-panel">
+            <img src="/static/img/sol.png" alt="">
+            <div>
+                <small>ENERGÍA</small>
+                <strong id="energyValue">280</strong>
+            </div>
+        </div>
+
+
+        <section class="ai-summary-panel" aria-label="Resumen de la inteligencia artificial">
+            <article class="realtime-card hud-panel">
+                <h2>ANÁLISIS IA EN TIEMPO REAL</h2>
+
+                <div class="realtime-metrics">
+                    <div class="summary-metric">
+                        <span class="summary-icon sun-summary">
+                            <img src="/static/img/sol.png" alt="">
+                        </span>
+                        <span class="summary-copy">
+                            <small>PRODUCCIÓN</small>
+                            <b>SOLAR</b>
+                            <strong id="solarSummary">BAJA</strong>
+                        </span>
+                    </div>
+
+                    <div class="summary-metric">
+                        <span class="summary-icon shield-summary"><img
+                    class="status-image"
+                    src="/static/img/escudo.png"
+                    alt="Vidas"
+                ></span>
+                        <span class="summary-copy">
+                            <small>DEFENSA</small>
+                            <b>GENERAL</b>
+                            <strong id="defenseSummary">BAJA</strong>
+                        </span>
+                    </div>
+
+                    <div class="summary-metric">
+                        <span ><img
+                    class="escudo-image"
+                    src="/static/img/circulo.png"
+                    alt="Vidas"
+                ></span>
+                        <span class="summary-copy">
+                            <small>PRESIÓN</small>
+                            <b>ENEMIGA</b>
+                            <strong id="pressureSummary">BAJA</strong>
+                        </span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="strategy-panel hud-panel">
+                <h2>ESTRATEGIA RECOMENDADA</h2>
+
+                <div class="strategy-body">
+                    <span class="strategy-shield"><img
+                    class="escudo-image"
+                    src="/static/img/escudo.png"
+                    alt="Vidas"
+                ></span>
+                    <p id="strategyRecommendation">
+                        Comienza con girasoles para generar energía y fortalece tus líneas de defensa.
+                    </p>
+                </div>
+
+                <button id="adaptStrategyButton" type="button">
+                    <span>ADAPTAR ESTRATEGIA</span>
+                    <img src="/static/img/cerebro.png" alt="">
+                </button>
+            </article>
+        </section>
+
+        <nav class="intelligence-benefits" aria-label="Beneficios del modo adaptativo">
+            <button class="benefit-card purple-benefit" type="button" data-benefit="aprende">
+                <img src="/static/img/cerebro.png" alt="">
+                <span>LA IA<br>APRENDE</span>
+            </button>
+
+            <button class="benefit-card green-benefit" type="button" data-benefit="analiza">
+                <span class="benefit-symbol"><img src="/static/img/grafico.png" alt=""></span>
+                <span>ANALIZA<br>TUS JUGADAS</span>
+            </button>
+
+            <button class="benefit-card orange-benefit" type="button" data-benefit="mejora">
+                <span class="benefit-symbol"><img src="/static/img/copa.png" alt=""></span>
+                <span>MEJORA<br>TU ESTRATEGIA</span>
+            </button>
+
+            <button class="benefit-card blue-benefit" type="button" data-benefit="protege">
+                <span class="benefit-symbol"><img
+                    class="status-image"
+                    src="/static/img/escudo.png"
+                    alt="Vidas"
+                ></span>
+                <span>PROTEGE<br>TU JARDÍN</span>
+            </button>
+        </nav>
+
+
+        <section class="top-status-bar" aria-label="Estado general de la partida">
+            <article class="status-box energy-box">
+                <img
+                    class="status-image"
+                    src="/static/img/sol.png"
+                    alt="Energía"
+                >
+
+                <div>
+                    <small>ENERGÍA</small>
+                    <strong id="topEnergyValue">280</strong>
+                </div>
+            </article>
+
+            <article class="status-box">
+                <img
+                    class="status-image"
+                    src="/static/img/ola.png"
+                    alt="Oleada"
+                >
+
+                <div>
+                    <small>OLEADA</small>
+                    <strong>
+                        <span id="topWaveValue">1</span>/5
+                    </strong>
+                </div>
+            </article>
+
+            <article class="status-box">
+                <img
+                    class="status-image"
+                    src="/static/img/corazon.png"
+                    alt="Vidas"
+                >
+
+                <div>
+                    <small>VIDAS</small>
+                    <strong id="topLivesValue">3</strong>
+                </div>
+            </article>
+
+            <button
+                class="status-control"
+                id="pauseControl"
+                type="button"
+                aria-label="Pausar"
+            >
+              <img
+                    class="status-image"
+                    src="/static/img/pausa.png"
+                    alt="Pausar" 
+                >
+            </button>
+
+            <button
+                class="status-control"
+                id="soundControl"
+                type="button"
+                aria-label="Sonido"
+            >
+                <img
+                    class="status-image"
+                    src="/static/img/sonido.png"
+                    alt="Sonido" 
+                >
+            </button>
+
+            <button
+                class="status-control"
+                id="settingsControl"
+                type="button"
+                aria-label="Configuración"
+            ><img
+                    class="status-image"
+                    src="/static/img/configuracion.png"
+                    alt="Configuración" 
+                >
+            </button>
+        </section>
+
+        <aside class="garden-ai-panel" aria-label="Panel de inteligencia artificial">
+            <header class="garden-ai-title">
+                <span class="bot-icon"><img
+                    class="status-image"
+                    src="/static/img/robot.png"
+                    alt="Vidas"
+                ></span>
+                <strong>IA DEL JARDÍN</strong>
+                <span class="chevron">›</span>
+            </header>
+
+            <section class="ai-card precision-card">
+                <h3>PRECISIÓN IA</h3>
+                <div class="precision-content">
+                    <div class="precision-ring" id="precisionRing">
+                        <span></span>
+                    </div>
+                    <strong id="precisionValue">87%</strong>
+                </div>
+            </section>
+
+            <section class="ai-card pattern-card">
+                <h3>PATRÓN DETECTADO</h3>
+                <svg viewBox="0 0 220 70" preserveAspectRatio="none" aria-label="Patrón detectado">
+                    <polyline id="patternPolyline" points="0,48 25,25 50,44 75,40 100,32 125,18 150,30 180,45 220,22"></polyline>
+                </svg>
+            </section>
+
+            <section class="ai-card threat-card">
+                <h3>ANÁLISIS DE AMENAZAS</h3>
+                <div class="threat-content">
+                    <span><img
+                    class="escudo-image"
+                    src="/static/img/escudo.png"
+                    alt="Vidas"
+                ></span>
+                    <div id="threatSummary">
+                        <b>Amenaza baja</b>
+                        <small>Entorno estable</small>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ai-card prediction-card">
+                <h3>PREDICCIÓN DE ATAQUE</h3>
+                <div class="prediction-chart">
+                    <div class="prediction-grid"></div>
+                    <span class="prediction-line"></span>
+                    <span class="prediction-arrow">➤</span>
+                    <span class="prediction-skull"><img
+                    class="calavera-image"
+                    src="/static/img/calavera.png"
+                    alt="Vidas"
+                ></span>
+                </div>
+                <small id="predictionState">◌ Sin actividad</small>
+            </section>
+
+            <section class="ai-card learning-card">
+                <h3>APRENDIZAJE DEL JUGADOR</h3>
+                <div class="learning-content">
+                    <img src="/static/img/cerebro.png" alt="">
+                    <div>
+                        <p>Análisis de tus últimas partidas...</p>
+                        <div class="learning-track">
+                            <span id="learningProgress"></span>
+                        </div>
+                    </div>
+                    <strong id="learningPercent">0%</strong>
+                </div>
+            </section>
+
+            <section class="radar-panel">
+                <div class="radar" id="radar">
+                    <span class="radar-sweep"></span>
+                    <i class="dot dot-1"></i>
+                    <i class="dot dot-2"></i>
+                    <i class="dot dot-3"></i>
+                </div>
+            </section>
+        </aside>
+
+        <div class="pause-screen hidden" id="pauseScreen">
+            <div class="pause-modal">
+                <span>⏸️</span>
+                <h2>Partida en pausa</h2>
+                <button id="resumeControl" type="button">Continuar</button>
+            </div>
+        </div>
+
+        <dialog id="settingsDialog">
+            <form method="dialog">
+                <h2>Configuración</h2>
+                <label>
+                    Velocidad
+                    <select id="speedControl">
+                        <option value="0.8">Lenta</option>
+                        <option value="1" selected>Normal</option>
+                        <option value="1.25">Rápida</option>
+                    </select>
+                </label>
+                <button>Cerrar</button>
+            </form>
+        </dialog>
+
+        <div class="game-message" id="gameMessage" role="status" aria-live="polite"></div>
+    </main>
+
+    <script src="/static/js/juego.js"></script>
+</body>
+</html>

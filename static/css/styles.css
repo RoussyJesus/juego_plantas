@@ -1,0 +1,401 @@
+:root {
+    --azul-profundo: #03113d;
+    --azul-neon: #10ddff;
+    --verde-neon: #a6ff2d;
+    --morado-neon: #d24cff;
+    --texto: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow: hidden;
+    color: var(--texto);
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    background:
+        radial-gradient(circle at 50% 25%, #164ca2 0, transparent 33%),
+        linear-gradient(145deg, #02051b, var(--azul-profundo));
+}
+
+button {
+    font: inherit;
+}
+
+.pagina {
+    display: grid;
+    width: 100vw;
+    height: 100vh;
+    place-items: center;
+    padding: clamp(0px, 1vw, 12px);
+}
+
+.portada {
+    position: relative;
+    width: min(100vw, calc(100vh * 1.776833));
+    max-width: 1672px;
+    aspect-ratio: 1672 / 941;
+    overflow: hidden;
+    isolation: isolate;
+    background-image: url("../img/portada.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    border: 1px solid rgba(69, 220, 255, 0.45);
+    box-shadow:
+        0 0 30px rgba(0, 190, 255, 0.26),
+        0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.capa-ambiente {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 28% 75%, rgba(45, 255, 123, 0.13), transparent 22%),
+        radial-gradient(circle at 72% 67%, rgba(255, 128, 42, 0.12), transparent 23%);
+    animation: respirar 4s ease-in-out infinite alternate;
+}
+
+.barrido {
+    position: absolute;
+    z-index: 2;
+    top: -25%;
+    bottom: -25%;
+    left: -30%;
+    width: 11%;
+    pointer-events: none;
+    opacity: 0.18;
+    transform: rotate(12deg);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(84, 242, 255, 0.95),
+        transparent
+    );
+    filter: blur(5px);
+    animation: escanear 8s linear infinite;
+}
+
+.zona-modo {
+    position: absolute;
+    z-index: 5;
+    top: 45.1%;
+    height: 8.2%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    outline: none;
+    color: transparent;
+    background: transparent;
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        background-color 160ms ease;
+}
+
+.zona-modo span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.zona-clasico {
+    left: 35.1%;
+    width: 15.1%;
+}
+
+.zona-adaptativo {
+    left: 50.2%;
+    width: 15.9%;
+}
+
+.zona-clasico:hover,
+.zona-clasico:focus-visible {
+    border-color: rgba(186, 255, 73, 0.95);
+    background-color: rgba(110, 255, 58, 0.07);
+    box-shadow:
+        0 0 8px rgba(163, 255, 35, 0.9),
+        0 0 28px rgba(74, 255, 58, 0.74),
+        inset 0 0 20px rgba(122, 255, 68, 0.25);
+    transform: scale(1.035);
+}
+
+.zona-adaptativo:hover,
+.zona-adaptativo:focus-visible {
+    border-color: rgba(233, 91, 255, 0.95);
+    background-color: rgba(210, 69, 255, 0.08);
+    box-shadow:
+        0 0 8px rgba(238, 77, 255, 0.92),
+        0 0 28px rgba(180, 49, 255, 0.75),
+        inset 0 0 20px rgba(195, 69, 255, 0.28);
+    transform: scale(1.035);
+}
+
+.boton-sonido,
+.boton-pantalla {
+    position: absolute;
+    z-index: 7;
+    top: 2%;
+    display: grid;
+    width: clamp(34px, 3.1vw, 51px);
+    aspect-ratio: 1;
+    cursor: pointer;
+    place-items: center;
+    border: 1px solid rgba(86, 226, 255, 0.74);
+    border-radius: 50%;
+    color: white;
+    background: rgba(3, 19, 62, 0.72);
+    box-shadow: 0 0 14px rgba(0, 217, 255, 0.35);
+    transition: transform 160ms ease, background 160ms ease;
+}
+
+.boton-sonido:hover,
+.boton-pantalla:hover {
+    transform: scale(1.08);
+    background: rgba(5, 62, 126, 0.88);
+}
+
+.boton-sonido {
+    right: 5.5%;
+}
+
+.boton-pantalla {
+    right: 1.6%;
+}
+
+.estado {
+    position: absolute;
+    z-index: 6;
+    right: 50%;
+    bottom: 1.2%;
+    max-width: 80%;
+    padding: 0.55em 1.2em;
+    border: 1px solid rgba(78, 225, 255, 0.5);
+    border-radius: 999px;
+    opacity: 0;
+    color: #dffaff;
+    background: rgba(0, 13, 48, 0.78);
+    box-shadow: 0 0 18px rgba(0, 218, 255, 0.22);
+    font-size: clamp(11px, 1.15vw, 17px);
+    text-align: center;
+    transform: translateX(50%) translateY(15px);
+    transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.estado.visible {
+    opacity: 1;
+    transform: translateX(50%) translateY(0);
+}
+
+.modal {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.modal.oculto {
+    display: none;
+}
+
+.modal-fondo {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 5, 28, 0.78);
+    backdrop-filter: blur(9px);
+}
+
+.modal-contenido {
+    position: relative;
+    width: min(480px, 92vw);
+    padding: 34px;
+    overflow: hidden;
+    border: 1px solid rgba(76, 225, 255, 0.68);
+    border-radius: 25px;
+    background:
+        linear-gradient(145deg, rgba(9, 30, 79, 0.97), rgba(3, 12, 45, 0.98));
+    box-shadow:
+        0 0 35px rgba(0, 207, 255, 0.35),
+        0 25px 80px rgba(0, 0, 0, 0.62);
+    text-align: center;
+    animation: aparecer 210ms ease-out;
+}
+
+.modal-contenido::before {
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    width: 260px;
+    height: 180px;
+    border-radius: 50%;
+    content: "";
+    transform: translateX(-50%);
+    background: rgba(0, 218, 255, 0.14);
+    filter: blur(20px);
+}
+
+.modal-cerrar {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    right: 16px;
+    cursor: pointer;
+    border: 0;
+    color: #dff9ff;
+    background: transparent;
+    font-size: 32px;
+    line-height: 1;
+}
+
+.modal-icono {
+    position: relative;
+    display: grid;
+    width: 80px;
+    margin: 0 auto 12px;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid rgba(95, 234, 255, 0.66);
+    border-radius: 50%;
+    background: rgba(0, 190, 255, 0.12);
+    box-shadow: 0 0 24px rgba(0, 217, 255, 0.3);
+    font-size: 39px;
+}
+
+.modal-etiqueta {
+    margin: 0 0 8px;
+    color: #70eaff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+.modal h2 {
+    margin: 0 0 12px;
+    font-size: clamp(27px, 5vw, 39px);
+}
+
+.modal p:not(.modal-etiqueta) {
+    margin: 0;
+    color: #d5e9ff;
+    line-height: 1.55;
+}
+
+.modal-acciones {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.boton-secundario,
+.boton-iniciar {
+    min-height: 50px;
+    cursor: pointer;
+    border-radius: 13px;
+    font-weight: 800;
+    transition: transform 160ms ease, filter 160ms ease;
+}
+
+.boton-secundario {
+    border: 1px solid rgba(120, 225, 255, 0.55);
+    color: white;
+    background: rgba(24, 66, 118, 0.6);
+}
+
+.boton-iniciar {
+    border: 0;
+    color: #071527;
+    background: linear-gradient(135deg, #55ecff, #a4ff44);
+    box-shadow: 0 0 20px rgba(91, 239, 255, 0.3);
+}
+
+.boton-secundario:hover,
+.boton-iniciar:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+}
+
+.boton-iniciar:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    transform: none;
+}
+
+@keyframes escanear {
+    from {
+        left: -30%;
+    }
+    to {
+        left: 125%;
+    }
+}
+
+@keyframes respirar {
+    from {
+        opacity: 0.55;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes aparecer {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@media (max-width: 700px) {
+    .pagina {
+        padding: 0;
+    }
+
+    .portada {
+        border: 0;
+    }
+
+    .boton-sonido,
+    .boton-pantalla {
+        font-size: 12px;
+    }
+
+    .modal-contenido {
+        padding: 29px 22px 22px;
+    }
+
+    .modal-acciones {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}

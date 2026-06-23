@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#071d57">
+    <title>Defensa del Jardín Inteligente</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <main class="pagina" id="pagina">
+        <section
+            class="portada"
+            id="portada"
+            aria-label="Portada de Defensa del Jardín Inteligente"
+        >
+            <div class="capa-ambiente" aria-hidden="true"></div>
+            <div class="barrido" aria-hidden="true"></div>
+
+            <!--
+                Los botones transparentes se colocan encima de los botones que
+                ya aparecen dibujados en la imagen. Sus medidas son porcentuales,
+                por eso mantienen su posición cuando cambia el tamaño de pantalla.
+            -->
+            <button
+                class="zona-modo zona-clasico"
+                type="button"
+                data-modo="clasico"
+                aria-label="Seleccionar modo clásico"
+            >
+                <span>Seleccionar modo clásico</span>
+            </button>
+
+            <button
+                class="zona-modo zona-adaptativo"
+                type="button"
+                data-modo="adaptativo"
+                aria-label="Seleccionar modo adaptativo"
+            >
+                <span>Seleccionar modo adaptativo</span>
+            </button>
+
+            <button
+                class="boton-sonido"
+                id="botonSonido"
+                type="button"
+                aria-label="Activar o desactivar efectos de sonido"
+                title="Efectos de sonido"
+            >
+                🔊
+            </button>
+
+            <button
+                class="boton-pantalla"
+                id="botonPantalla"
+                type="button"
+                aria-label="Mostrar en pantalla completa"
+                title="Pantalla completa"
+            >
+                ⛶
+            </button>
+
+            <div class="estado" id="estado" role="status" aria-live="polite">
+                Elige un modo para comenzar
+            </div>
+        </section>
+    </main>
+
+    <div class="modal oculto" id="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModal">
+        <div class="modal-fondo" data-cerrar-modal></div>
+
+        <section class="modal-contenido">
+            <button class="modal-cerrar" type="button" data-cerrar-modal aria-label="Cerrar">×</button>
+
+            <div class="modal-icono" id="modalIcono" aria-hidden="true">🎯</div>
+            <p class="modal-etiqueta">MODO SELECCIONADO</p>
+            <h2 id="tituloModal">Modo clásico</h2>
+            <p id="descripcionModal"></p>
+
+            <div class="modal-acciones">
+                <button class="boton-secundario" type="button" data-cerrar-modal>
+                    Regresar
+                </button>
+                <button class="boton-iniciar" id="botonIniciar" type="button">
+                    Iniciar partida
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# Este proyecto no necesita librerías externas.
+# Funciona con Python 3.10 o superior.
