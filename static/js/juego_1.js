@@ -630,7 +630,7 @@ const HORDES = [
     },
     {
         number: 2,
-        duration: 10000,
+        duration: 30000,
         totalZombies: 100,
         spawnInterval: 300,
         weights: {
@@ -655,12 +655,12 @@ function startHordes() {
     state.hordesStarted = true;
 
     showMessage(
-        "La primera horda llegará en 1 minuto y durará 5 segundos.",
-        4200,
+        "La primera horda llegará en 5 segundos y durará 15 segundos.",
+        3200,
     );
 
     hordeTimerIds.push(
-        window.setTimeout(() => launchHorde(0), 60000),
+        window.setTimeout(() => launchHorde(0), 5000),
     );
 
     if (!zombieAnimationId) {
@@ -685,8 +685,8 @@ function launchHorde(index) {
 
     showMessage(
         horde.number === 1
-            ? "Horda 1: 50 zombis llegarán durante 5 segundos."
-            : "Horda 2: ataque violento durante 10 segundos.",
+            ? "Horda 1: 50 zombis llegarán durante 15 segundos."
+            : "Horda 2: ataque violento durante 30 segundos.",
         3000,
     );
 
@@ -1669,14 +1669,14 @@ function checkHordeFinished() {
         const nextHordeIndex = state.currentHorde;
 
         showMessage(
-            "Horda superada. La segunda horda comenzará en 1 minuto.",
-            4200,
+            "Horda superada. La siguiente comenzará en 5 segundos.",
+            2800,
         );
 
         hordeTimerIds.push(
             window.setTimeout(
                 () => launchHorde(nextHordeIndex),
-                60000,
+                5000,
             ),
         );
 
