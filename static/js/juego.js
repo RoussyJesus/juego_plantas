@@ -4,6 +4,7 @@
 const ROWS = 5;
 const COLS = 9;
 
+// Modificación de Jardy: durabilidad balanceada de plantas para que el girasol sea el más frágil y la nuez la mejor defensa.
 const PLANTS = {
     tiradora: {
         name: "Tiradora",
@@ -15,13 +16,13 @@ const PLANTS = {
         name: "Girasol",
         cost: 50,
         image: "/static/img/girasol.png",
-        health: 110,
+        health: 80,
     },
     nuez: {
         name: "Nuez muro",
         cost: 75,
         image: "/static/img/nuez.png",
-        health: 420,
+        health: 480,
     },
     hielo: {
         name: "Planta hielo",
@@ -33,7 +34,7 @@ const PLANTS = {
         name: "Explosiva",
         cost: 150,
         image: "/static/img/explosiva.png",
-        health: 100,
+        health: 110,
     },
 };
 
@@ -44,6 +45,8 @@ const state = {
     totalAttacks: 0,
     hordesStarted: false,
     currentHorde: 0,
+    mode: "adaptativo",
+    startTime: 0,
     zombies: [],
     hordeActive: false,
     gameFinished: false,
@@ -52,6 +55,8 @@ const state = {
     sunflowerCooldowns: new Map(),
     sunTokens: [],
     explosiveArmed: new Map(),
+    damageAccumulated: 0,
+    enemiesDefeated: 0,
     plantHealth: Array.from({ length: ROWS }, () => Array(COLS).fill(0)),
     plantMaxHealth: Array.from({ length: ROWS }, () => Array(COLS).fill(0)),
     plantBeingEaten: Array.from({ length: ROWS }, () => Array(COLS).fill(0)),
@@ -224,6 +229,25 @@ function renderPlant(row, col) {
     tears.append(tearLeft, tearRight);
 
     wrapper.append(image, healthBar, tears);
+
+    // Modificación de Jardy: aplicar transform por fila para ajustar perspectiva inclinada del fondo
+    const rowOffsets = [
+        { x: 0, y: -10 }, // fila superior: ligeramente más arriba
+        { x: 0, y: -7 },  // fila 2: algo más arriba
+        { x: 0, y: -5 },  // fila 3: pequeña corrección
+        { x: 0, y: -3 },  // fila 4: leve corrección
+        { x: 0, y: 0 },   // fila 5: base
+    ];
+
+    const rowOffset = rowOffsets[row] ?? { x: 0, y: 0 };
+    const colOffsetX = 12 + col * 3.8;
+    const colOffsetY = col * 0.6;
+    const skew = -8 + row * 2.2; // menos skew en filas bajas para parecer más rectas hacia el fondo
+    const scale = 1 + (0.06 * (1 - row / (ROWS - 1)));
+
+    wrapper.style.transform = `translate(var(--plant-offset-x, 0%), var(--plant-offset-y, 0%)) translateX(${colOffsetX}px) translateY(${rowOffset.y + colOffsetY}px) skewY(${skew}deg) scale(${scale})`;
+    wrapper.style.transformOrigin = '50% 60%';
+
     cell.appendChild(wrapper);
 }
 
@@ -291,7 +315,9 @@ function configureMode() {
     const mode = params.get("modo");
     const badge = document.getElementById("modeBadge");
 
-    if (mode === "clasico") {
+    state.mode = mode === "clasico" ? "clasico" : "adaptativo";
+
+    if (state.mode === "clasico") {
         badge.querySelector("span").textContent = "MODO CLÁSICO";
     } else {
         badge.querySelector("span").textContent = "MODO ADAPTATIVO";
@@ -299,11 +325,13 @@ function configureMode() {
 }
 
 function start() {
+    state.startTime = performance.now();
     buildGrid();
     setupPlantMenu();
     configureMode();
     updateEnergy();
     updateCards();
+    startHordes();
 
     showMessage(
         "Selecciona una planta y colócala sobre una casilla.",
@@ -325,17 +353,50 @@ const adaptStrategyButton = document.getElementById("adaptStrategyButton");
 function getBoardStatistics() {
     const flatBoard = state.board.flat();
     const totalPlants = flatBoard.filter(Boolean).length;
-    const solarPlants = flatBoard.filter(type => type === "girasol").length;
-    const defensivePlants = flatBoard.filter(type => type === "nuez").length;
-    const attackPlants = flatBoard.filter(type =>
-        ["tiradora", "hielo", "explosiva"].includes(type)
-    ).length;
+    const counts = {
+        girasol: 0,
+        nuez: 0,
+        tiradora: 0,
+        hielo: 0,
+        explosiva: 0,
+    };
+
+    flatBoard.forEach(type => {
+        if (type && counts[type] !== undefined) {
+            counts[type] += 1;
+        }
+    });
+
+    const dominantPlantType = Object.entries(counts).reduce(
+        (best, [type, value]) => {
+            if (value > best.value) {
+                return { type, value };
+            }
+            return best;
+        },
+        { type: "none", value: 0 },
+    ).type;
+
+    const plantTypeCode = {
+        none: 0,
+        girasol: 1,
+        nuez: 2,
+        tiradora: 3,
+        hielo: 4,
+        explosiva: 5,
+    }[dominantPlantType];
 
     return {
         totalPlants,
-        solarPlants,
-        defensivePlants,
-        attackPlants,
+        solarPlants: counts.girasol,
+        defensivePlants: counts.nuez,
+        attackPlants: counts.tiradora + counts.hielo + counts.explosiva,
+        girasolCount: counts.girasol,
+        nuezCount: counts.nuez,
+        tiradoraCount: counts.tiradora,
+        hieloCount: counts.hielo,
+        explosivaCount: counts.explosiva,
+        dominantPlantType: plantTypeCode,
     };
 }
 
@@ -351,8 +412,53 @@ function setStatusClass(element, status) {
     }
 }
 
+// Modificación de Jardy: se mejora la heurística de la IA para recomendar acciones según el estado real del tablero y la amenaza actual.
+function getHeuristicRecommendation() {
+    const stats = getBoardStatistics();
+    const activeThreat = Math.max(
+        state.currentHorde * 2,
+        state.zombies.length * 1.5,
+        state.totalAttacks,
+    );
+    const weakestRow = findWeakestRow();
+
+    if (stats.solarPlants === 0) {
+        return {
+            plant: "girasol",
+            message: "Prioriza un girasol para sostener la energía y preparar la defensa futura.",
+        };
+    }
+
+    if (stats.defensivePlants === 0 && activeThreat >= 6) {
+        return {
+            plant: "nuez",
+            message: "La defensa está expuesta; coloca una nuez para absorber el impacto de los zombis.",
+        };
+    }
+
+    if (stats.attackPlants < 2 && activeThreat >= 4) {
+        return {
+            plant: "tiradora",
+            message: "Añade una tiradora para contener el avance en la fila más vulnerable.",
+        };
+    }
+
+    if (activeThreat >= 7 && weakestRow >= 0 && state.energy >= 125) {
+        return {
+            plant: "hielo",
+            message: `Usa una planta de hielo en la fila ${weakestRow + 1} para frenar la presión enemiga.`,
+        };
+    }
+
+    return {
+        plant: "tiradora",
+        message: "Tu formación está bien, pero una tiradora reforzará el frente más comprometido.",
+    };
+}
+
 function updateIntelligencePanels() {
     const stats = getBoardStatistics();
+    const recommendation = getHeuristicRecommendation();
 
     const solarStatus =
         stats.solarPlants >= 3
@@ -386,39 +492,65 @@ function updateIntelligencePanels() {
     setStatusClass(solarSummary, solarStatus);
     setStatusClass(defenseSummary, defenseStatus);
     setStatusClass(pressureSummary, pressureStatus);
+    strategyRecommendation.textContent = recommendation.message;
+}
 
-    if (stats.solarPlants === 0) {
-        strategyRecommendation.textContent =
-            "Comienza con girasoles para generar energía y fortalece tus líneas de defensa.";
-    } else if (stats.defensivePlants === 0) {
-        strategyRecommendation.textContent =
-            "Coloca una nuez muro delante de tus plantas de ataque para protegerlas.";
-    } else if (stats.attackPlants < 2) {
-        strategyRecommendation.textContent =
-            "Añade tiradoras o plantas de hielo para aumentar el daño de tus filas.";
-    } else {
-        strategyRecommendation.textContent =
-            "Tu formación está equilibrada. Refuerza las filas con menos plantas.";
+function getStrategyPredictionPayload() {
+    const stats = getBoardStatistics();
+    const durationSeconds = state.startTime
+        ? Math.round((performance.now() - state.startTime) / 1000)
+        : 0;
+
+    return {
+        mode_code: state.mode === "clasico" ? 0 : 1,
+        wave: state.wave,
+        energy: state.energy,
+        lives: state.lives,
+        totalAttacks: state.totalAttacks,
+        totalPlants: stats.totalPlants,
+        solarPlants: stats.solarPlants,
+        defensivePlants: stats.defensivePlants,
+        attackPlants: stats.attackPlants,
+        girasolCount: stats.girasolCount,
+        nuezCount: stats.nuezCount,
+        tiradoraCount: stats.tiradoraCount,
+        hieloCount: stats.hieloCount,
+        explosivaCount: stats.explosivaCount,
+        dominantPlantType: stats.dominantPlantType,
+        durationSeconds,
+        durationMinutes: Number((durationSeconds / 60).toFixed(2)),
+        damageAccumulated: state.damageAccumulated,
+        enemiesDefeated: state.enemiesDefeated,
+    };
+}
+
+async function fetchStrategyRecommendation() {
+    try {
+        const response = await fetch("/api/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(getStrategyPredictionPayload()),
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const result = await response.json();
+        return result.recomendacion || null;
+    } catch {
+        return null;
     }
 }
 
-adaptStrategyButton.addEventListener("click", () => {
-    const stats = getBoardStatistics();
+adaptStrategyButton.addEventListener("click", async () => {
+    const predictedPlant = await fetchStrategyRecommendation();
+    const recommendation = predictedPlant
+        ? { plant: predictedPlant }
+        : getHeuristicRecommendation();
 
-    if (stats.solarPlants === 0) {
-        selectPlant("girasol");
-        showMessage("Consejo aplicado: coloca un girasol.");
-        return;
-    }
-
-    if (stats.defensivePlants === 0) {
-        selectPlant("nuez");
-        showMessage("Consejo aplicado: coloca una nuez muro.");
-        return;
-    }
-
-    selectPlant("tiradora");
-    showMessage("Consejo aplicado: refuerza el ataque con una tiradora.");
+    selectPlant(recommendation.plant);
+    showMessage(`Consejo aplicado: ${recommendation.plant === "girasol" ? "coloca un girasol" : recommendation.plant === "nuez" ? "coloca una nuez muro" : recommendation.plant === "hielo" ? "coloca una planta de hielo" : "refuerza con una tiradora"}.`);
 });
 
 document.querySelectorAll(".benefit-card").forEach(button => {
@@ -513,14 +645,22 @@ function updateRightPanel() {
 }
 
 function findWeakestRow() {
-    const rowStrength = state.board.map(row =>
-        row.reduce((sum, type) => {
+    const rowStrength = state.board.map((row, index) => {
+        const plantedDefense = row.reduce((sum, type) => {
             if (!type) return sum;
-            if (type === "nuez") return sum + 3;
-            if (type === "tiradora" || type === "hielo") return sum + 2;
-            return sum + 1;
-        }, 0)
-    );
+            if (type === "nuez") return sum + 3.4;
+            if (type === "tiradora" || type === "hielo") return sum + 2.2;
+            if (type === "explosiva") return sum + 2.6;
+            return sum + 1.3;
+        }, 0);
+
+        const incomingThreat = state.zombies.filter(
+            zombie => !zombie.dying && zombie.row === index,
+        ).length * 2.4;
+        const pressureBoost = state.currentHorde * 0.5;
+
+        return plantedDefense - incomingThreat - pressureBoost;
+    });
 
     return rowStrength.indexOf(Math.min(...rowStrength));
 }
@@ -535,6 +675,47 @@ function setPaused(value) {
         pauseImage.alt = value ? "Continuar" : "Pausar";
     } else {
         pauseButton.textContent = value ? "▶" : "Ⅱ";
+    }
+}
+
+async function recordGameResult(victory) {
+    const stats = getBoardStatistics();
+    const durationSeconds = state.startTime
+        ? Math.round((performance.now() - state.startTime) / 1000)
+        : 0;
+
+    const payload = {
+        finishedAt: new Date().toISOString(),
+        mode: state.mode,
+        victory,
+        lives: state.lives,
+        wave: state.wave,
+        energy: state.energy,
+        totalAttacks: state.totalAttacks,
+        totalPlants: stats.totalPlants,
+        solarPlants: stats.solarPlants,
+        defensivePlants: stats.defensivePlants,
+        attackPlants: stats.attackPlants,
+        girasolCount: stats.girasolCount,
+        nuezCount: stats.nuezCount,
+        tiradoraCount: stats.tiradoraCount,
+        hieloCount: stats.hieloCount,
+        explosivaCount: stats.explosivaCount,
+        dominantPlantType: stats.dominantPlantType,
+        durationSeconds,
+        durationMinutes: Number((durationSeconds / 60).toFixed(2)),
+        damageAccumulated: state.damageAccumulated,
+        enemiesDefeated: state.enemiesDefeated,
+    };
+
+    try {
+        await fetch("/api/registro", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+    } catch (error) {
+        console.error("Error guardando registro de partida:", error);
     }
 }
 
@@ -614,31 +795,32 @@ const ZOMBIE_TYPES = {
     jefe: { name: "Zombi jefe", image: "/static/img/zombie_jefe.png", speed: 1.45, health: 520, damage: 30, className: "zombie-boss", badge: "JEFE" },
 };
 
+// Modificación de Jardy: la primera oleada solo usa zombis más ligeros y los más difíciles aparecen en la segunda.
 const HORDES = [
     {
         number: 1,
-        duration: 5000,
-        totalZombies: 50,
-        spawnInterval: 300,
+        duration: 45000,
+        totalZombies: 18,
+        spawnInterval: 1800,
         weights: {
-            lento: 42,
-            rapido: 28,
+            lento: 55,
+            rapido: 30,
             saltador: 15,
-            resistente: 12,
-            jefe: 3,
+            resistente: 0,
+            jefe: 0,
         },
     },
     {
         number: 2,
-        duration: 10000,
-        totalZombies: 100,
-        spawnInterval: 300,
+        duration: 50000,
+        totalZombies: 22,
+        spawnInterval: 1500,
         weights: {
-            lento: 10,
+            lento: 15,
             rapido: 20,
-            saltador: 18,
-            resistente: 42,
-            jefe: 10,
+            saltador: 15,
+            resistente: 35,
+            jefe: 15,
         },
     },
 ];
@@ -655,12 +837,12 @@ function startHordes() {
     state.hordesStarted = true;
 
     showMessage(
-        "La primera horda llegará en 1 minuto y durará 5 segundos.",
+        "Los zombis comenzarán en 20 segundos y aparecerán de forma gradual.",
         4200,
     );
 
     hordeTimerIds.push(
-        window.setTimeout(() => launchHorde(0), 60000),
+        window.setTimeout(() => launchHorde(0), 20000),
     );
 
     if (!zombieAnimationId) {
@@ -685,8 +867,8 @@ function launchHorde(index) {
 
     showMessage(
         horde.number === 1
-            ? "Horda 1: 50 zombis llegarán durante 5 segundos."
-            : "Horda 2: ataque violento durante 10 segundos.",
+            ? "Horda 1: los zombis entran poco a poco y la intensidad aumenta."
+            : "Horda 2: la presión aumenta con el tiempo.",
         3000,
     );
 
@@ -714,23 +896,14 @@ function launchHorde(index) {
         spawnZombie(zombieType, spawned, randomRow);
         spawned += 1;
 
-        const remainingTime = Math.max(
-            0,
-            horde.duration - (performance.now() - startedAt),
-        );
-        const remainingZombies = horde.totalZombies - spawned;
-
-        if (remainingZombies <= 0 || remainingTime <= 0) {
-            state.hordeActive = false;
-            checkHordeFinished();
-            return;
-        }
-
-        const idealInterval = remainingTime / remainingZombies;
-        const jitter = 0.82 + Math.random() * 0.36;
+        const progress = Math.min(1, elapsed / Math.max(1, horde.duration));
+        const initialInterval = Math.max(700, horde.spawnInterval);
+        const finalInterval = Math.max(220, initialInterval * 0.35);
+        const rampedInterval = initialInterval - (initialInterval - finalInterval) * progress;
+        const jitter = 0.85 + Math.random() * 0.25;
         const nextDelay = Math.max(
-            90,
-            Math.min(horde.spawnInterval * 1.35, idealInterval * jitter),
+            250,
+            Math.min(initialInterval * 1.2, rampedInterval * jitter),
         );
 
         hordeTimerIds.push(
@@ -827,9 +1000,49 @@ function spawnZombie(type, orderIndex = 0, forcedRow = null) {
     updateRightPanel();
 }
 
+// Modificación de Jardy: el modo clásico ahora usa una heurística para elegir filas más vulnerables en lugar de atacar de forma puramente aleatoria.
+function getRowDefenseScore(row) {
+    return row.reduce((sum, type) => {
+        if (!type) return sum;
+        if (type === "nuez") return sum + 3.6;
+        if (type === "tiradora" || type === "hielo") return sum + 2.4;
+        if (type === "explosiva") return sum + 2.8;
+        return sum + 1.3;
+    }, 0);
+}
+
+function chooseClassicZombieRow() {
+    const rowScores = state.board.map((row, index) => {
+        const defenseScore = getRowDefenseScore(row);
+        const currentPressure = state.zombies.filter(
+            zombie => !zombie.dying && zombie.row === index,
+        ).length * 1.3;
+        const hordePressure = state.currentHorde >= 2 ? 1.1 : 0.4;
+        const rowHasPlants = row.some(Boolean) ? 0.6 : 0;
+
+        return defenseScore + currentPressure + hordePressure + rowHasPlants;
+    });
+
+    const weakestRow = rowScores.reduce(
+        (bestIndex, score, index, scores) =>
+            score < scores[bestIndex] ? index : bestIndex,
+        0,
+    );
+
+    return rowScores[weakestRow] <= 6.5 ? weakestRow : Math.floor(Math.random() * ROWS);
+}
+
 function chooseZombieRow() {
     const mode = new URLSearchParams(window.location.search).get("modo");
-    if (mode === "adaptativo" && Math.random() < 0.72) return findWeakestRow();
+
+    if (mode === "adaptativo") {
+        return Math.random() < 0.72 ? findWeakestRow() : Math.floor(Math.random() * ROWS);
+    }
+
+    if (mode === "clasico") {
+        return chooseClassicZombieRow();
+    }
+
     return Math.floor(Math.random() * ROWS);
 }
 
@@ -1168,6 +1381,8 @@ function defeatZombie(zombie) {
 
     zombie.dying = true;
     zombie.speed = 0;
+    zombie.enemiesDefeated = true;
+    state.enemiesDefeated += 1;
     zombie.element.classList.remove("zombie-frozen");
     zombie.element.classList.add("zombie-defeated");
 
@@ -1406,7 +1621,9 @@ function removeExplosivePlant(row, col) {
    ========================================================= */
 
 const BITE_INTERVAL = 700;
-const PLANT_COLLISION_DISTANCE = 5.6;
+// Modificación de Jardy: se mejora la colisión para que los zombis entren en contacto con las plantas de forma más natural y consistente.
+const PLANT_COLLISION_DISTANCE = 5.2;
+const PLANT_COLLISION_EARLY_BUFFER = 1.1;
 
 function getCellLeftX(col) {
     return (col / COLS) * 100;
@@ -1420,21 +1637,33 @@ function findPlantCollision(zombie) {
     let closest = null;
     let closestDistance = Infinity;
 
+    const threatRange = zombie.baseSpeed >= 5 ? 4.2 : 5.2;
+    const activeRange = Math.max(2.8, threatRange - (zombie.eating ? 0.6 : 0));
+
     for (let col = COLS - 1; col >= 0; col -= 1) {
         if (!state.board[zombie.row][col]) {
             continue;
         }
 
-        const plantX = getCellCenterX(col);
-        const distance = zombie.x - plantX;
+        const plantX = getCellCenterX(col) + 0.8;
+        const collisionStart = plantX - 2.2;
+        const collisionEnd = plantX + 1.3;
+        const distance = zombie.x - collisionStart;
 
-        if (
-            distance >= -1.2 &&
-            distance <= PLANT_COLLISION_DISTANCE &&
-            Math.abs(distance) < closestDistance
-        ) {
+        const isInContactZone =
+            distance >= -PLANT_COLLISION_EARLY_BUFFER &&
+            distance <= activeRange &&
+            zombie.x <= collisionEnd + 0.8;
+
+        if (!isInContactZone) {
+            continue;
+        }
+
+        const scoreDistance = Math.abs(distance);
+
+        if (scoreDistance < closestDistance) {
             closest = { row: zombie.row, col, plantX };
-            closestDistance = Math.abs(distance);
+            closestDistance = scoreDistance;
         }
     }
 
@@ -1513,6 +1742,7 @@ function updateZombieEating(zombie, timestamp) {
         0,
         state.plantHealth[row][col] - biteDamage,
     );
+    state.damageAccumulated += biteDamage;
 
     updatePlantHealthVisual(row, col);
 
@@ -1700,26 +1930,36 @@ function finishGame(victory) {
     });
     hordeTimerIds = [];
 
+    recordGameResult(victory);
+
     if (victory) {
         showMessage(
             "¡Victoria! Sobreviviste a las dos hordas.",
             5000,
         );
         predictionState.textContent = "✓ Dos hordas superadas";
+        const title = document.getElementById("gameOverTitle");
+        const message = gameOverScreen.querySelector("p");
+        if (title) {
+            title.textContent = "¡Victoria! Jardín defendido";
+        }
+        if (message) {
+            message.textContent = "Ganaste la partida. Puedes volver a jugar o salir al menú principal.";
+        }
+        gameOverScreen.classList.remove("hidden");
         return;
     }
 
     predictionState.textContent = "✕ El zombi se comió tu cerebro";
+    const title = document.getElementById("gameOverTitle");
+    const message = gameOverScreen.querySelector("p");
+    if (title) {
+        title.textContent = "¡El zombi llegó a tu casa!";
+    }
+    if (message) {
+        message.textContent = "Te quedaste sin vidas. ¿Quieres volver a defender el jardín?";
+    }
     gameOverScreen.classList.remove("hidden");
 }
-
-const originalHandleCellClickForHordes = handleCellClick;
-handleCellClick = function handleCellClickAndStartHordes(row, col) {
-    const before = state.board[row][col];
-    originalHandleCellClickForHordes(row, col);
-    const after = state.board[row][col];
-    if (!before && after && !state.hordesStarted) startHordes();
-};
-
 
 start();

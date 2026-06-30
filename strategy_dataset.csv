@@ -1,0 +1,4 @@
+mode_code,wave,energy,lives,totalAttacks,totalPlants,solarPlants,defensivePlants,attackPlants,girasolCount,nuezCount,tiradoraCount,hieloCount,explosivaCount,dominantPlantType,durationSeconds,durationMinutes,damageAccumulated,enemiesDefeated,recommended_action
+0,2,11,3,57,30,5,5,20,0,0,0,0,0,0,181,0,0,0,tiradora
+0,2,105,3,55,27,5,5,17,0,0,0,0,0,0,160,0,0,0,tiradora
+0,2,730,3,58,34,10,9,15,0,0,0,0,0,0,230,0,0,0,hielo

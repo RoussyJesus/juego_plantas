@@ -2,6 +2,9 @@
 :root {
     --cyan: #16d8ff;
     --cyan-soft: rgba(22, 216, 255, .34);
+    /* Modificación de Jardy: variables para ajustar offsets finos de colocación */
+    --plant-offset-x: 18%; /* Ajuste más sutil para la posición general de las plantas */
+    --plant-offset-y: -2%;
     --green: #8ef24a;
     --yellow: #ffd54a;
     --red: #ff5035;
@@ -390,6 +393,9 @@ a {
 
 .board-cell {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     border: 1px solid transparent;
     transition: background .12s ease, box-shadow .12s ease;
@@ -403,19 +409,28 @@ a {
 }
 
 .placed-plant {
+    /* Modificación de Jardy: llenar exactamente el área de la celda y permitir desplazamientos claros. */
     position: absolute;
-    inset: 6%;
-    display: grid;
-    place-items: center;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6% 4%;
+    box-sizing: border-box;
     pointer-events: none;
     animation: plant-float 1.6s ease-in-out infinite alternate;
 }
 
 .placed-plant img {
-    max-width: 95%;
-    max-height: 95%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     filter: drop-shadow(0 8px 5px rgba(0, 0, 0, .52));
+    /* Corrección: quitar el desplazamiento duplicado en la imagen, ya se aplica al contenedor. */
+    transform: none;
+    transform-origin: center center;
 }
 
 .energy-panel {
